@@ -63,10 +63,10 @@ def patcher(fname):
     # analysis code
     # r2 = r2pipe.open(fname, ["-2"])  # -2 -> disable stderr messages
     r2 = r2pipe.open(fname, ["-2", "-w"])  # -2 -> disable stderr messages
-    print("[+] Processing <%s> file..." % fname)
+    print(f"[+] Processing <{fname}> file...")
     r2.cmd('aa')
     # print(r2.cmd("pdf @ sym._cpuid_get_feature_names"))
-    result = r2.cmdj("axtj %s" % target_symbol)
+    result = r2.cmdj(f"axtj {target_symbol}")
     if not result:
         print("[!] Can't find xrefs to <%s>. Aborting!" % target_symbol)
         sys.exit(2)
@@ -91,5 +91,5 @@ if __name__ == "__main__":
         path = sys.argv[1]
         patcher(path)
     else:
-        print("Usage: %s [path-to-kernel-file]" % (sys.argv[0]))
+        print(f"Usage: {sys.argv[0]} [path-to-kernel-file]")
         sys.exit(1)

@@ -16,16 +16,15 @@ def patch(file, dif, revert=False):
 				code = code[:o]+orig+code[o+1:]
 			else:
 				raise Exception("patched byte at %s is not %02X" % (offset, ord(new)))
+		elif code[o]==orig:
+			code = code[:o]+new+code[o+1:]
 		else:
-			if code[o]==orig:
-				code = code[:o]+new+code[o+1:]
-			else:
-				raise Exception("original byte at %s is not %02X" % (offset, ord(orig)))
+			raise Exception("original byte at %s is not %02X" % (offset, ord(orig)))
 	open(file,'wb').write(code)
 
 def main():
 	if len(argv)<3:
-		print("Usage: %s <binary> <IDA.dif file> [revert]" % (argv[0]))
+		print(f"Usage: {argv[0]} <binary> <IDA.dif file> [revert]")
 		print("Applies given IDA .dif file to patch binary; use revert to revert patch.")
 		exit(0)
 
@@ -40,7 +39,7 @@ def main():
 		patch(file, dif, revert)
 		print("Done")
 	except Exception as e:
-		print("Error: %s" % str(e))
+		print(f"Error: {str(e)}")
 		exit(1)
 
 if __name__ == "__main__":
