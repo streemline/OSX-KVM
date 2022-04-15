@@ -52,7 +52,7 @@ INFO_REQURED = [INFO_PRODUCT, INFO_IMAGE_LINK, INFO_IMAGE_HASH, INFO_IMAGE_SESS,
 
 def run_query(url, headers, post=None, raw=False):
     if post is not None:
-        data = '\n'.join([entry + '=' + post[entry] for entry in post])
+        data = '\n'.join([f'{entry}={post[entry]}' for entry in post])
         if sys.version_info[0] >= 3:
             data = data.encode('utf-8')
     else:
@@ -66,14 +66,14 @@ def run_query(url, headers, post=None, raw=False):
 
 
 def generate_id(itype, nid=None):
-    valid_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
     if nid is None:
-        return ''.join(random.choice(valid_chars) for i in range(itype))
+        valid_chars = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F']
+        return ''.join(random.choice(valid_chars) for _ in range(itype))
     return nid
 
 
 def product_mlb(mlb):
-    return '00000000000' + mlb[11] + mlb[12] + mlb[13] + mlb[14] + '00'
+    return f'00000000000{mlb[11]}{mlb[12]}{mlb[13]}{mlb[14]}00'
 
 
 def mlb_from_eeee(eeee):
@@ -81,7 +81,7 @@ def mlb_from_eeee(eeee):
         print('ERROR: Invalid EEEE code length!')
         sys.exit(1)
 
-    return '00000000000' + eeee + '00'
+    return f'00000000000{eeee}00'
 
 def get_session(args):
     headers = {
@@ -95,7 +95,7 @@ def get_session(args):
     if args.verbose:
         print('Session headers:')
         for header in headers:
-            print('{}: {}'.format(header, headers[header]))
+            print(f'{header}: {headers[header]}')
 
     for header in headers:
         if header.lower() == 'set-cookie':
@@ -104,7 +104,7 @@ def get_session(args):
                 if cookie.startswith('session='):
                     return cookie
 
-    raise RuntimeError('No session in headers ' + str(headers))
+    raise RuntimeError(f'No session in headers {str(headers)}')
 
 
 def get_image_info(session, bid, mlb=MLB_ZERO, diag=False, os_type='default', cid=None):
@@ -145,7 +145,7 @@ def get_image_info(session, bid, mlb=MLB_ZERO, diag=False, os_type='default', ci
 
     for k in INFO_REQURED:
         if k not in info:
-            raise RuntimeError('Missing key ' + k)
+            raise RuntimeError(f'Missing key {k}')
 
     return info
 
@@ -162,9 +162,9 @@ def save_image(url, sess, filename='', directory=''):
     if filename == '':
         filename = os.path.basename(purl.path)
     if filename.find('/') >= 0 or filename == '':
-        raise RuntimeError('Invalid save path ' + filename)
+        raise RuntimeError(f'Invalid save path {filename}')
 
-    print('Saving ' + url + ' to ' + filename + '...')
+    print(f'Saving {url} to {filename}...')
 
     with open(os.path.join(directory, filename), 'wb') as fhandle:
         response = run_query(url, headers, raw=True)
@@ -173,7 +173,7 @@ def save_image(url, sess, filename='', directory=''):
         # print(total_size)
         if total_size < 1:
             total_size = response.headers['content-length']
-            print("Note: The total download size is %s bytes" % total_size)
+            print(f"Note: The total download size is {total_size} bytes")
         else:
             print("Note: The total download size is %0.2f MB" % total_size)
         size = 0
@@ -221,10 +221,10 @@ def action_download(args):
                           diag=args.diagnostics, os_type=args.os_type)
     if args.verbose:
         print(info)
-    print('Downloading ' + info[INFO_PRODUCT] + '...')
-    dmgname = '' if args.basename == '' else args.basename + '.dmg'
+    print(f'Downloading {info[INFO_PRODUCT]}...')
+    dmgname = '' if args.basename == '' else f'{args.basename}.dmg'
     save_image(info[INFO_IMAGE_LINK], info[INFO_IMAGE_SESS], dmgname, args.outdir)
-    cnkname = '' if args.basename == '' else args.basename + '.chunklist'
+    cnkname = '' if args.basename == '' else f'{args.basename}.chunklist'
     save_image(info[INFO_SIGN_LINK], info[INFO_SIGN_SESS], cnkname, args.outdir)
     return 0
 
@@ -270,32 +270,43 @@ def action_selfcheck(args):
 
     if valid_default[INFO_PRODUCT] == valid_latest[INFO_PRODUCT]:
         # Valid MLB must give different default and latest if this is not a too new product.
-        print('ERROR: Cannot determine any previous product, got {}'.format(valid_default[INFO_PRODUCT]))
+        print(
+            f'ERROR: Cannot determine any previous product, got {valid_default[INFO_PRODUCT]}'
+        )
+
         return 1
 
     if product_default[INFO_PRODUCT] != product_latest[INFO_PRODUCT]:
         # Product-only MLB must give the same value for default and latest.
-        print('ERROR: Latest and default do not match for product MLB, got {} and {}'.format(
-            product_default[INFO_PRODUCT], product_latest[INFO_PRODUCT]))
+        print(
+            f'ERROR: Latest and default do not match for product MLB, got {product_default[INFO_PRODUCT]} and {product_latest[INFO_PRODUCT]}'
+        )
+
         return 1
 
     if generic_default[INFO_PRODUCT] != generic_latest[INFO_PRODUCT]:
         # Zero MLB always give the same value for default and latest.
-        print('ERROR: Generic MLB gives different product, got {} and {}'.format(
-            generic_default[INFO_PRODUCT], generic_latest[INFO_PRODUCT]))
+        print(
+            f'ERROR: Generic MLB gives different product, got {generic_default[INFO_PRODUCT]} and {generic_latest[INFO_PRODUCT]}'
+        )
+
         return 1
 
     if valid_latest[INFO_PRODUCT] != generic_latest[INFO_PRODUCT]:
         # Valid MLB must always equal generic MLB.
-        print('ERROR: Cannot determine unified latest product, got {} and {}'.format(
-            valid_latest[INFO_PRODUCT], generic_latest[INFO_PRODUCT]))
+        print(
+            f'ERROR: Cannot determine unified latest product, got {valid_latest[INFO_PRODUCT]} and {generic_latest[INFO_PRODUCT]}'
+        )
+
         return 1
 
     if product_default[INFO_PRODUCT] != valid_default[INFO_PRODUCT]:
         # Product-only MLB can give the same value with valid default MLB.
         # This is not an error for all models, but for our chosen code it is.
-        print('ERROR: Valid and product MLB give mismatch, got {} and {}'.format(
-            product_default[INFO_PRODUCT], valid_default[INFO_PRODUCT]))
+        print(
+            f'ERROR: Valid and product MLB give mismatch, got {product_default[INFO_PRODUCT]} and {valid_default[INFO_PRODUCT]}'
+        )
+
         return 1
 
     print('SUCCESS: Found no discrepancies with MLB validation algorithm!')
@@ -325,9 +336,9 @@ def action_verify(args):
     # Verify our MLB number.
     if uvalid_default[INFO_PRODUCT] != uvalid_latest[INFO_PRODUCT]:
         if uvalid_latest[INFO_PRODUCT] == generic_latest[INFO_PRODUCT]:
-            print('SUCCESS: {} MLB looks valid and supported!'.format(args.mlb))
+            print(f'SUCCESS: {args.mlb} MLB looks valid and supported!')
         else:
-            print('SUCCESS: {} MLB looks valid, but probably unsupported!'.format(args.mlb))
+            print(f'SUCCESS: {args.mlb} MLB looks valid, but probably unsupported!')
         return 0
 
     print('UNKNOWN: Run selfcheck, check your board-id, or try again later!')
@@ -335,13 +346,18 @@ def action_verify(args):
     # Here we have matching default and latest products. This can only be true for very
     # new models. These models get either latest or special builds.
     if uvalid_default[INFO_PRODUCT] == generic_latest[INFO_PRODUCT]:
-        print('UNKNOWN: {} MLB can be valid if very new!'.format(args.mlb))
+        print(f'UNKNOWN: {args.mlb} MLB can be valid if very new!')
         return 0
     if uproduct_default[INFO_PRODUCT] != uvalid_default[INFO_PRODUCT]:
-        print('UNKNOWN: {} MLB looks invalid, other models use product {} instead of {}!'.format(
-            args.mlb, uproduct_default[INFO_PRODUCT], uvalid_default[INFO_PRODUCT]))
+        print(
+            f'UNKNOWN: {args.mlb} MLB looks invalid, other models use product {uproduct_default[INFO_PRODUCT]} instead of {uvalid_default[INFO_PRODUCT]}!'
+        )
+
         return 0
-    print('UNKNOWN: {} MLB can be valid if very new and using special builds!'.format(args.mlb))
+    print(
+        f'UNKNOWN: {args.mlb} MLB can be valid if very new and using special builds!'
+    )
+
     return 0
 
 
@@ -372,8 +388,10 @@ def action_guess(args):
 
                 if model_latest[INFO_PRODUCT] != generic_latest[INFO_PRODUCT]:
                     if db[model] == 'current':
-                        print('WARN: Skipped {} due to using latest product {} instead of {}'.format(
-                            model, model_latest[INFO_PRODUCT], generic_latest[INFO_PRODUCT]))
+                        print(
+                            f'WARN: Skipped {model} due to using latest product {model_latest[INFO_PRODUCT]} instead of {generic_latest[INFO_PRODUCT]}'
+                        )
+
                     continue
 
                 user_default = get_image_info(session, bid=model, mlb=mlb,
@@ -393,16 +411,18 @@ def action_guess(args):
                     supported[model] = [db[model], user_default[INFO_PRODUCT], user_latest[INFO_PRODUCT]]
 
         except Exception as e:
-            print('WARN: Failed to check {}, exception: {}'.format(model, str(e)))
+            print(f'WARN: Failed to check {model}, exception: {str(e)}')
 
-    if len(supported) > 0:
-        print('SUCCESS: MLB {} looks supported for:'.format(mlb))
-        for model in supported:
-            print('- {}, up to {}, default: {}, latest: {}'.format(model, supported[model][0],
-                                                                   supported[model][1], supported[model][2]))
+    if supported:
+        print(f'SUCCESS: MLB {mlb} looks supported for:')
+        for model, value in supported.items():
+            print(
+                f'- {model}, up to {supported[model][0]}, default: {value[1]}, latest: {supported[model][2]}'
+            )
+
         return 0
 
-    print('UNKNOWN: Failed to determine supported models for MLB {}!'.format(mlb))
+    print(f'UNKNOWN: Failed to determine supported models for MLB {mlb}!')
 
 
 # https://stackoverflow.com/questions/2280334/shortest-way-of-creating-an-object-with-arbitrary-attributes-in-python
@@ -424,14 +444,33 @@ def main():
                         help='customise output directory for downloading, defaults to current directory')
     parser.add_argument('-n', '--basename', type=str, default='',
                         help='customise base name for downloading, defaults to remote name')
-    parser.add_argument('-b', '--board-id', type=str, default=RECENT_MAC,
-                        help='use specified board identifier for downloading, defaults to ' + RECENT_MAC)
-    parser.add_argument('-m', '--mlb', type=str, default=MLB_ZERO,
-                        help='use specified logic board serial for downloading, defaults to ' + MLB_ZERO)
+    parser.add_argument(
+        '-b',
+        '--board-id',
+        type=str,
+        default=RECENT_MAC,
+        help=f'use specified board identifier for downloading, defaults to {RECENT_MAC}',
+    )
+
+    parser.add_argument(
+        '-m',
+        '--mlb',
+        type=str,
+        default=MLB_ZERO,
+        help=f'use specified logic board serial for downloading, defaults to {MLB_ZERO}',
+    )
+
     parser.add_argument('-e', '--code', type=str, default='',
                         help='generate product logic board serial with specified product EEEE code')
-    parser.add_argument('-os', '--os-type', type=str, default='default', choices=['default', 'latest'],
-                        help='use specified os type, defaults to default ' + MLB_ZERO)
+    parser.add_argument(
+        '-os',
+        '--os-type',
+        type=str,
+        default='default',
+        choices=['default', 'latest'],
+        help=f'use specified os type, defaults to default {MLB_ZERO}',
+    )
+
     parser.add_argument('-diag', '--diagnostics', action='store_true', help='download diagnostics image')
     parser.add_argument('-s', '--shortname', type=str, default='',
                         help='available options: high-sierra, mojave, catalina, big-sur, monterey')
